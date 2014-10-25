@@ -5,5 +5,5 @@ project(optimend)
 include_directories(include)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -Wextra")
 
-set(SRC_LIST src/main.c src/config.c)
+set(SRC_LIST src/main.c src/config.c src/log.c)
 add_executable(${PROJECT_NAME} ${SRC_LIST})
