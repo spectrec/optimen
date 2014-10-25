@@ -1,19 +1,20 @@
 package com.example.yura.optimen;
 
-import android.app.ListActivity;
+import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.Toast;
 import android.app.AlertDialog;
 
 
-public class Optimen extends ListActivity {
+public class Optimen extends Activity {
 
     //==============================================================================================
     optimen_list optimen_lst;
@@ -32,16 +33,11 @@ public class Optimen extends ListActivity {
                 processItemClick(adapterView, view, i, l);
             }
         };
-        // create adapter for listview
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(
-                this,
-                android.R.layout.simple_list_item_1,
-                optimen_lst.to_string()
-        );
-        // set adapter for listview
-        setListAdapter(adapter);
 
-        getListView().setOnItemClickListener(itemClickListener);
+        SimpleAdapter adapter = getAdapterForView(optimen_lst);
+        ListView listView = (ListView)findViewById(R.id.listview);
+        listView.setAdapter(adapter);
+        listView.setOnItemClickListener(itemClickListener);
     }
 
     @Override
@@ -87,6 +83,15 @@ public class Optimen extends ListActivity {
         lst.add_element('F',"config.h");
 
         return lst;
+    }
+
+    public SimpleAdapter getAdapterForView(optimen_list list){
+        String[] from = {"icon", "name"};
+        int[] to = {R.id.icon, R.id.name};
+
+        return  new SimpleAdapter(getBaseContext(),
+                optimen_lst.get_data_for_view(),
+                R.layout.listview_layout, from, to);
     }
 
     private void processItemClick(AdapterView<?> adapterView, View view, int i, long l){

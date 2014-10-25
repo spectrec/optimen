@@ -2,10 +2,10 @@
 <merger version="2" >
 
     <dataSet config="main" >
-        <source path="/home/yura/BMSTU/TeamDev/Project/gui/app/src/main/assets" />
+        <source path="/home/yura/optimen/gui/app/src/main/assets" />
     </dataSet>
     <dataSet config="debug" >
-        <source path="/home/yura/BMSTU/TeamDev/Project/gui/app/src/debug/assets" />
+        <source path="/home/yura/optimen/gui/app/src/debug/assets" />
     </dataSet>
 
 </merger>
