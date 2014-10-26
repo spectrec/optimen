@@ -13,14 +13,22 @@
 #include "config.h"
 
 static struct config *__config;
+static const char *__path_to_config;
 
-void close_file(FILE **f)
+__attribute__((destructor))
+static void config_destroy()
+{
+	if (__config != NULL)
+		config_deinitialize();
+}
+
+static void close_file(FILE **f)
 {
 	if (*f != NULL)
 		fclose(*f);
 }
 
-int add_to_config(const char *key, const char *value)
+static int add_to_config(const char *key, const char *value)
 {
 	assert(key != NULL && value != NULL);
 
@@ -28,12 +36,14 @@ int add_to_config(const char *key, const char *value)
 		__config->user = strdup(value);
 	} else if (strcmp(key, "pid_file") == 0) {
 		__config->pid_file = strdup(value);
+	} else if (strcmp(key, "root_directory") == 0) {
+		__config->root_dir = strdup(value);
 	} else if (strcmp(key, "listen_port") == 0) {
 		__config->listen_port = atoi(value);
 	} else if (strcmp(key, "timeout_read") == 0) {
-		__config->timeout_read = atoi(value);
+		__config->timeout_read = atoi(value) / 1000.0f;
 	} else if (strcmp(key, "timeout_write") == 0) {
-		__config->timeout_write = atoi(value);
+		__config->timeout_write = atoi(value) / 1000.0f;
 	} else if (strcmp(key, "max_connections") == 0) {
 		__config->max_connections = atoi(value);
 	} else if (strcmp(key, "log_level") == 0) {
@@ -50,7 +60,7 @@ int add_to_config(const char *key, const char *value)
 }
 
 #define MAX_CONFIG_LINE_LEN 256
-int parse_config_line(FILE *f)
+static int parse_config_line(FILE *f)
 {
 	char buf[MAX_CONFIG_LINE_LEN + 1] = {0};
 	if (fgets(buf, sizeof(buf) - 1, f) == NULL) {
@@ -114,8 +124,11 @@ int config_initialize(const char *path)
 	assert(__config == NULL);
 
 	if (path == NULL) {
-		fprintf(stderr, "using default config path: `%s'\n", DEFAULT_CONFIG_PATH);
-		path = DEFAULT_CONFIG_PATH;
+		path = __path_to_config;
+		if (__path_to_config == NULL) {
+			fprintf(stderr, "using default config path: `%s'\n", DEFAULT_CONFIG_PATH);
+			path = DEFAULT_CONFIG_PATH;
+		}
 	}
 
 	FILE *f __attribute__((cleanup(close_file))) = fopen(path, "r");
@@ -134,6 +147,8 @@ int config_initialize(const char *path)
 		}
 	}
 
+	__path_to_config = path;
+
 	return 0;
 }
 
@@ -143,11 +158,14 @@ void config_deinitialize()
 
 	free(__config->user);
 	free(__config->pid_file);
+	free(__config->root_dir);
 
 	free(__config);
 }
 
 const struct config *config_get_config()
 {
+	assert(__config != NULL);
+
 	return __config;
 }

@@ -8,12 +8,12 @@
 #include "config.h"
 
 __attribute__((destructor))
-void close_log()
+static void close_log()
 {
 	closelog();
 }
 
-int log_level2syslog(enum log_level level)
+static int log_level2syslog(enum log_level level)
 {
 	switch (level) {
 	case LOG_LEVEL_DEBUG:
@@ -31,13 +31,11 @@ int log_level2syslog(enum log_level level)
 
 void write_log(enum log_level level, const char *fmt, ...)
 {
-	va_list ap;
 	const struct config *config = config_get_config();
-
-	assert(config != NULL);
 	if (config->log_level < level)
 		return;
 
+	va_list ap;
 	int syslog_level = log_level2syslog(level);
 
 	va_start(ap, fmt);

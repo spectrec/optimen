@@ -11,11 +11,12 @@
 struct config {
 	char *user;
 	char *pid_file;
+	char *root_dir;
 
 	int16_t listen_port;
 
-	int32_t timeout_read;
-	int32_t timeout_write;
+	float timeout_read;
+	float timeout_write;
 
 	uint32_t max_connections;
 
