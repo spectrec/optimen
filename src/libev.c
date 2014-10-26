@@ -394,6 +394,8 @@ void libev_send(const void *data, size_t size, void *ctx)
 {
 	struct libev_conn *lc = (struct libev_conn *)(ctx - offsetof(struct libev_conn, ctx));
 
+	log_i("sending response to client [%d]: `%.*s'", lc->conn_id, size, data);
+
 	tbuf_append(&lc->write_buffer, data, size);
 	libev_invert_event(lc);
 }
