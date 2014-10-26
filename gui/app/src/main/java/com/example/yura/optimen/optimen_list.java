@@ -3,6 +3,8 @@ package com.example.yura.optimen;
 /**
  * Created by yura on 25.10.14.
  */
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
@@ -49,6 +51,8 @@ public class optimen_list
     }
 
     public List<HashMap<String, String>> get_data_for_view(){
+        sort_by_file_type();
+
         int[] icons = new int[] {R.drawable.folder_icon, R.drawable.file_icon};
 
         List<HashMap<String,String>> result = new ArrayList<HashMap<String,String>>();
@@ -71,7 +75,7 @@ public class optimen_list
     }
 
     private void sort_by_file_type(){
-
+        Collections.sort(lst);
     }
 
     private Vector<dir_data> lst;

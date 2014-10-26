@@ -18,12 +18,19 @@ public class Optimen extends Activity {
 
     //==============================================================================================
     optimen_list optimen_lst;
+    config_reader config;
     //==============================================================================================
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.optimen);
+        // create Optimen directory
+        os_helper.create_directory("/sdcard/Optimen");
+        // read configuration
+        config = new config_reader();
+        config.read_config("/sdcard/Optimen/optimen_gui.conf");
+        config.print_config_data();
         // get testing data
         optimen_lst = get_test_data();
         // click by item
@@ -63,9 +70,9 @@ public class Optimen extends Activity {
     public optimen_list get_test_data(){
         optimen_list lst = new optimen_list();
 
+        lst.add_element('D',"study");
         lst.add_element('D',"books");
         lst.add_element('D',"films");
-        lst.add_element('D',"study");
         lst.add_element('F',"main.cpp");
         lst.add_element('F',"hello.cpp");
         lst.add_element('F',"goodbye.cpp");
@@ -98,9 +105,7 @@ public class Optimen extends Activity {
         final dir_data tmp = optimen_lst.get_element(i);
         // if element it is directory
         if (tmp.getType() == dir_data.DIR){
-            Toast.makeText(getApplicationContext(),
-                    "Папка - " + tmp.getName(),
-                    Toast.LENGTH_SHORT).show();
+            process_dir(tmp.getName());
         }
         // if element it is file
         else if (tmp.getType() == dir_data.FLD){
@@ -112,7 +117,7 @@ public class Optimen extends Activity {
             builder.setPositiveButton("Да", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
-                    start_loading(tmp.getName());
+                    process_file(tmp.getName());
                 }
             });
             builder.setNegativeButton("Нет", new DialogInterface.OnClickListener() {
@@ -124,9 +129,15 @@ public class Optimen extends Activity {
         }
     }
 
-    private void start_loading(String filename){
+    private void process_dir(String dirname){
         Toast.makeText(getApplicationContext(),
-                "Приступаю к скачиванию файла " + filename,
+                "Папка - " + dirname,
+                Toast.LENGTH_SHORT).show();
+    }
+
+    private void process_file(String filename){
+        Toast.makeText(getApplicationContext(),
+                "Файл - " + filename,
                 Toast.LENGTH_SHORT).show();
     }
 }
