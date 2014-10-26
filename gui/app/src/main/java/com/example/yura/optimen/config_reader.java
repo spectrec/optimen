@@ -13,8 +13,8 @@ import java.io.PrintWriter;
  * Created by yura on 26.10.14.
  */
 public class config_reader {
-    private Integer default_port = 23849;
-    private String default_ip = "192.168.0.105";
+    private Integer default_port = 12345;
+    private String default_ip = "192.168.0.100";
 
     public config_reader(){
         port = default_port;
@@ -58,7 +58,15 @@ public class config_reader {
 
     public void print_config_data(){
         Log.i("Optimen: ", "port = " + Integer.toString(port));
-        Log.i( "Optimen: ", "ip = " + ip);
+        Log.i("Optimen: ", "ip = " + ip);
+    }
+
+    public Integer get_port(){
+        return  port;
+    }
+
+    public String get_ip(){
+        return ip;
     }
 
     private Integer port;

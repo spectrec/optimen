@@ -3,6 +3,7 @@ package com.example.yura.optimen;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,20 +20,30 @@ public class Optimen extends Activity {
     //==============================================================================================
     optimen_list optimen_lst;
     config_reader config;
+    String current_path;
+    ListView listView;
     //==============================================================================================
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.optimen);
-        // create Optimen directory
-        os_helper.create_directory("/sdcard/Optimen");
-        // read configuration
+
         config = new config_reader();
+
+        // create Optimen directory
+        if (os_helper.create_directory("/sdcard/Optimen") == 1)
+            config.write_config_to_file("/sdcard/Optimen/optimen_gui.conf");
+
+        // read configuration
         config.read_config("/sdcard/Optimen/optimen_gui.conf");
         config.print_config_data();
-        // get testing data
-        optimen_lst = get_test_data();
+
+        current_path = new String("/");
+
+        // get testing data in '/'
+        optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
+
         // click by item
         OnItemClickListener itemClickListener = new OnItemClickListener() {
             @Override
@@ -41,10 +52,9 @@ public class Optimen extends Activity {
             }
         };
 
-        SimpleAdapter adapter = getAdapterForView(optimen_lst);
-        ListView listView = (ListView)findViewById(R.id.listview);
-        listView.setAdapter(adapter);
+        listView = (ListView)findViewById(R.id.listview);
         listView.setOnItemClickListener(itemClickListener);
+        update_list_view(optimen_lst);
     }
 
     @Override
@@ -67,31 +77,6 @@ public class Optimen extends Activity {
     }
 
     //==============================================================================================
-    public optimen_list get_test_data(){
-        optimen_list lst = new optimen_list();
-
-        lst.add_element('D',"study");
-        lst.add_element('D',"books");
-        lst.add_element('D',"films");
-        lst.add_element('F',"main.cpp");
-        lst.add_element('F',"hello.cpp");
-        lst.add_element('F',"goodbye.cpp");
-        lst.add_element('F',"test.cpp");
-        lst.add_element('F',"log.cpp");
-        lst.add_element('F',"process.cpp");
-        lst.add_element('F',"entity.cpp");
-        lst.add_element('F',"config.cpp");
-        lst.add_element('F',"hello.h");
-        lst.add_element('F',"goodbye.h");
-        lst.add_element('F',"test.h");
-        lst.add_element('F',"log.h");
-        lst.add_element('F',"process.h");
-        lst.add_element('F',"entity.h");
-        lst.add_element('F',"config.h");
-
-        return lst;
-    }
-
     public SimpleAdapter getAdapterForView(optimen_list list){
         String[] from = {"icon", "name"};
         int[] to = {R.id.icon, R.id.name};
@@ -105,7 +90,7 @@ public class Optimen extends Activity {
         final dir_data tmp = optimen_lst.get_element(i);
         // if element it is directory
         if (tmp.getType() == dir_data.DIR){
-            process_dir(tmp.getName());
+            process_dir(tmp);
         }
         // if element it is file
         else if (tmp.getType() == dir_data.FLD){
@@ -129,15 +114,38 @@ public class Optimen extends Activity {
         }
     }
 
-    private void process_dir(String dirname){
-        Toast.makeText(getApplicationContext(),
-                "Папка - " + dirname,
-                Toast.LENGTH_SHORT).show();
+    private void process_dir(dir_data data){
+        if (data.getName().compareTo(".") == 0)
+            return;
+        // back
+        if (data.getName().compareTo("..") == 0){
+            int pos = -1;
+            for (int i = current_path.length()-2; i >= 0 && pos == -1; --i){
+                if (current_path.charAt(i) == '/')
+                    pos = i;
+            }
+            if (pos != -1)
+                current_path = current_path.substring(0, pos+1);
+        }
+        // forward
+        else {
+            current_path += data.getName() + "/";
+        }
+
+        Log.i("Optimen", current_path);
+
+        optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
+        update_list_view(optimen_lst);
     }
 
     private void process_file(String filename){
         Toast.makeText(getApplicationContext(),
                 "Файл - " + filename,
                 Toast.LENGTH_SHORT).show();
+    }
+
+    private void update_list_view(optimen_list lst){
+        SimpleAdapter adapter = getAdapterForView(lst);
+        listView.setAdapter(adapter);
     }
 }

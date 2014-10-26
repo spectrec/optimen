@@ -4,9 +4,8 @@
     <!-- From: file:/home/yura/optimen/gui/app/src/main/res/values/colors.xml -->
     <eat-comment />
 
-    <color name="bg_color">#000000</color>
-    <color name="grey_color">#C0C0C0</color>
-    <color name="text_color">#FFFFFF</color>
+    <color name="bg_color">#C0C0C0</color>
+    <color name="text_color">#000000</color>
     <!-- From: file:/home/yura/optimen/gui/app/src/main/res/values/dimens.xml -->
     <eat-comment />
 

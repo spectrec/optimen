@@ -66,11 +66,9 @@
             <file
                 path="/home/yura/optimen/gui/app/src/main/res/values/colors.xml"
                 qualifiers="" >
-                <color name="text_color" >#FFFFFF
+                <color name="text_color" >#000000
                 </color>
-                <color name="bg_color" >#000000
-                </color>
-                <color name="grey_color" >#C0C0C0
+                <color name="bg_color" >#C0C0C0
                 </color>
             </file>
             <file
