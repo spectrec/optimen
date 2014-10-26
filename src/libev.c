@@ -149,10 +149,12 @@ static void libev_invert_event(struct libev_conn *lc)
 		ev_timer_set(&lc->timer_w, config->timeout_write, 0.);
 		ev_io_set(&lc->io_w, lc->io_w.fd, EV_WRITE);
 		ev_set_cb(&lc->io_w, libev_write_cb);
+		log_d("conn [%d]: wait for write event", lc->conn_id);
 	} else {
 		ev_timer_set(&lc->timer_w, config->timeout_read, 0.);
 		ev_io_set(&lc->io_w, lc->io_w.fd, EV_READ);
 		ev_set_cb(&lc->io_w, libev_read_cb);
+		log_d("conn [%d]: wait for read event", lc->conn_id);
 	}
 
 	ev_io_start(__loop, &lc->io_w);
@@ -185,18 +187,18 @@ static void libev_read_cb(EV_P_ ev_io *w, int revent)
 	}
 
 	tbuf_append(&lc->read_buffer, buf, ret);
-	log_i("readed from [%d]: `%.*s'", lc->conn_id, lc->read_buffer.size, lc->read_buffer.data);
-
-	ret = lc->cb(lc->read_buffer.data, lc->read_buffer.size, &lc->ctx);
-	if (ret > 0)
-		tbuf_shrink(&lc->read_buffer, ret);
+	log_d("readed from [%d]: `%.*s'", lc->conn_id, lc->read_buffer.size, lc->read_buffer.data);
 
 	ev_timer_stop(loop, &lc->timer_w);
 	ev_timer_set(&lc->timer_w, config->timeout_read, 0.);
 	ev_timer_start(loop, &lc->timer_w);
 
-	libev_send(lc->read_buffer.data, lc->read_buffer.size, &lc->ctx);
-	tbuf_shrink(&lc->read_buffer, lc->read_buffer.size);
+	ret = lc->cb(lc->read_buffer.data, lc->read_buffer.size, &lc->ctx);
+	if (ret > 0) {
+		tbuf_shrink(&lc->read_buffer, ret);
+		log_d("conn [%d], read buffer after shrink: `%.*s'",
+		      lc->conn_id, lc->read_buffer.size, lc->read_buffer.data);
+	}
 }
 
 static void libev_write_cb(EV_P_ ev_io *w, int revent)
@@ -214,7 +216,7 @@ static void libev_write_cb(EV_P_ ev_io *w, int revent)
 		return;
 	}
 
-	if (ret == 0) {
+	if (ret == 0 && lc->write_buffer.size != 0) {
 		log_w("nothing was sent by [%d], try again", lc->conn_id);
 
 		return;
@@ -225,6 +227,9 @@ static void libev_write_cb(EV_P_ ev_io *w, int revent)
 	ev_timer_start(loop, &lc->timer_w);
 
 	tbuf_shrink(&lc->write_buffer, ret);
+	log_d("conn [%d], write buffer after shrink: `%.*s'",
+	      lc->conn_id, lc->write_buffer.size, lc->write_buffer.data);
+
 	if (lc->write_buffer.size != 0)
 		return;
 
