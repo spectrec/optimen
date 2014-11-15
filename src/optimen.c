@@ -132,7 +132,7 @@ static enum optimen_ret optimen_process_command_ls(struct tbuf *resp,
 			struct stat st;
 			char path[256] = {0};
 
-			(void)snprintf(path, sizeof(path - 1), "%s/%s", args, dent.d_name);
+			(void)snprintf(path, sizeof(path) - 1, "%s/%s", args, dent.d_name);
 			if (stat(path, &st) != 0) {
 				tbuf_insert(resp, ERROR("can't detect file type"));
 				log_e("can't stat file `%s': %s", path, strerror(errno));
