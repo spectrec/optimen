@@ -19,6 +19,9 @@ set(SRC_LIST src/main.c
 set(TEST_SRC_LIST test/config.c
 		  test/tbuf.c
 		  test/main.c
+		  test/mock.c
+		  test/optimen.c
+		  src/optimen.c
 		  src/config.c
 		  src/tbuf.c)
 

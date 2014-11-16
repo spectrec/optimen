@@ -2,7 +2,9 @@
 #define __UNIT_H__
 
 #include <check.h>
-Suite *config_suite(void);
+
 Suite *tbuf_suite(void);
+Suite *config_suite(void);
+Suite *optimen_suite(void);
 
 #endif
