@@ -28,39 +28,69 @@ static void close_file(FILE **f)
 		fclose(*f);
 }
 
-static int add_to_config(const char *key, const char *value)
+#define CONFIG_SAFE_ADD_STRING(_field, _value) do {	\
+	if ((_field) != NULL) {				\
+		free(_field);				\
+		(_field) = NULL;			\
+	}						\
+	_field = strdup(_value);			\
+} while (0)
+
+#define CONFIG_CHECK_ASSIGN_INT(_field, _value) ({	\
+	int32_t ret = 0;				\
+	char *endptr = NULL;				\
+							\
+	_field = strtol(_value, &endptr, 10);		\
+	if (errno == ERANGE || *endptr != '\0')		\
+		ret = -1;				\
+							\
+	ret;						\
+})
+
+#define CONFIG_CHECK_RET_ERROR(_field, _value) do {		\
+	if (CONFIG_CHECK_ASSIGN_INT(_field, _value) != 0) {	\
+		fprintf(stderr, "config: invalid value `%s'\n",	\
+				_value);			\
+		return -1;					\
+	}							\
+} while (0)
+
+static int add_to_config(const char *key, const char *value, bool verbose)
 {
 	assert(key != NULL && value != NULL);
 
 	if (strcmp(key, "user") == 0) {
-		__config->user = strdup(value);
+		CONFIG_SAFE_ADD_STRING(__config->user, value);
 	} else if (strcmp(key, "pid_file") == 0) {
-		__config->pid_file = strdup(value);
+		CONFIG_SAFE_ADD_STRING(__config->pid_file, value);
 	} else if (strcmp(key, "root_directory") == 0) {
-		__config->root_dir = strdup(value);
+		CONFIG_SAFE_ADD_STRING(__config->root_dir, value);
 	} else if (strcmp(key, "listen_port") == 0) {
-		__config->listen_port = atoi(value);
+		CONFIG_CHECK_RET_ERROR(__config->listen_port, value);
 	} else if (strcmp(key, "timeout_read") == 0) {
-		__config->timeout_read = atoi(value) / 1000.0f;
+		CONFIG_CHECK_RET_ERROR(__config->timeout_read, value);
+		__config->timeout_read /= 1000.0f;
 	} else if (strcmp(key, "timeout_write") == 0) {
-		__config->timeout_write = atoi(value) / 1000.0f;
+		CONFIG_CHECK_RET_ERROR(__config->timeout_write, value);
+		__config->timeout_write /= 1000.0f;
 	} else if (strcmp(key, "max_connections") == 0) {
-		__config->max_connections = atoi(value);
+		CONFIG_CHECK_RET_ERROR(__config->max_connections, value);
 	} else if (strcmp(key, "log_level") == 0) {
-		__config->log_level = atoi(value);
+		CONFIG_CHECK_RET_ERROR(__config->log_level, value);
 	} else {
 		fprintf(stderr, "unknown key: `%s' with value: `%s'\n", key, value);
 
 		return -1;
 	}
 
-	fprintf(stderr, "config: parameter `%s' set to `%s'\n", key, value);
+	if (verbose == true)
+		fprintf(stderr, "config: parameter `%s' set to `%s'\n", key, value);
 
 	return 0;
 }
 
 #define MAX_CONFIG_LINE_LEN 256
-static int parse_config_line(FILE *f)
+static int parse_config_line(FILE *f, bool verbose)
 {
 	char buf[MAX_CONFIG_LINE_LEN + 1] = {0};
 	if (fgets(buf, sizeof(buf) - 1, f) == NULL) {
@@ -116,10 +146,11 @@ static int parse_config_line(FILE *f)
 		value_end = c;
 
 	return add_to_config(strndupa(key_beg, key_end - key_beg),
-			     strndupa(value_beg, value_end - value_beg));
+			     strndupa(value_beg, value_end - value_beg),
+			     verbose);
 }
 
-int config_initialize(const char *path)
+int config_initialize(const char *path, bool verbose)
 {
 	assert(__config == NULL);
 
@@ -140,7 +171,7 @@ int config_initialize(const char *path)
 
 	__config = (struct config *)calloc(1, sizeof(struct config));
 	while (feof(f) == false && ferror(f) == false) {
-		if (parse_config_line(f) != 0) {
+		if (parse_config_line(f, verbose) != 0) {
 			config_deinitialize();
 
 			return -1;
@@ -154,13 +185,15 @@ int config_initialize(const char *path)
 
 void config_deinitialize()
 {
-	assert(__config != NULL);
+	if (__config == NULL)
+		return;
 
 	free(__config->user);
 	free(__config->pid_file);
 	free(__config->root_dir);
 
 	free(__config);
+	__config = NULL;
 }
 
 const struct config *config_get_config()

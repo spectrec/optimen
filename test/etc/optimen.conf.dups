@@ -1,0 +1,29 @@
+# user name for change uid and gid
+user optimen
+user optimen2
+user optimen3
+
+# path to daemon pid file
+pid_file /var/run/optimen.pid
+pid_file /var/run/optimen2.pid
+
+# path to directory, chroot to
+listen_port 12345
+root_directory /var/optimen
+
+# daemon tcp listen port
+listen_port 143
+root_directory /var/optimen0
+timeout_read 30000
+
+# timeouts in microseconds
+timeout_read 300003
+timeout_write 30000
+
+# maximal number of connections to accept
+max_connections 100
+max_connections 200
+
+# log level (1 - only errors, 4 - debug level)
+log_level 4
+max_connections 400

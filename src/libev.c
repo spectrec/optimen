@@ -329,7 +329,7 @@ static void libev_signal_handler(EV_P_ ev_signal *w, int revents)
 		log_w("received SIGHUP, reloading config");
 		config_deinitialize();
 
-		if (config_initialize(NULL) != 0)
+		if (config_initialize(NULL, false) != 0)
 			log_e("some errors occurred while reloading config, check logs");
 		return;
 

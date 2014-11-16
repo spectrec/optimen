@@ -1,0 +1,8 @@
+listen_port 
+user 
+pid_file 
+root_directory 
+timeout_read 
+timeout_write 
+max_connections 
+log_level 

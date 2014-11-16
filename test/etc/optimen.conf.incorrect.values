@@ -1,0 +1,8 @@
+user optimen
+pid_file /var/run/optimen.pid
+root_directory /var/optimen
+listen_port 1234e
+timeout_read 30a00
+timeout_write 30m00
+max_connections 100
+log_level 4a

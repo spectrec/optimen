@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (config_initialize(path_to_config) != 0)
+	if (config_initialize(path_to_config, true) != 0)
 		return -1;
 
 	if (dont_daemonize != true)

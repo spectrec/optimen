@@ -2,6 +2,7 @@
 #define __CONFIG_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/types.h>
 
 #include "log.h"
@@ -23,7 +24,7 @@ struct config {
 	enum log_level log_level;
 };
 
-int config_initialize(const char *path);
+int config_initialize(const char *path, bool verbose);
 void config_deinitialize();
 
 const struct config *config_get_config();
