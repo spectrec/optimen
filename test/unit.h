@@ -3,5 +3,6 @@
 
 #include <check.h>
 Suite *config_suite(void);
+Suite *tbuf_suite(void);
 
 #endif

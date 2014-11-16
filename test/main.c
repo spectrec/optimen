@@ -4,12 +4,11 @@
 
 int main(void)
 {
-	int number_failed = 0;
-	Suite *s;
 	SRunner *sr;
+	int number_failed = 0;
 
-	s = config_suite();
-	sr = srunner_create(s);
+	sr = srunner_create(config_suite());
+	srunner_add_suite(sr, tbuf_suite());
 
 	srunner_run_all(sr, CK_NORMAL);
 	number_failed = srunner_ntests_failed(sr);
