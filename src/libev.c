@@ -387,7 +387,9 @@ int libev_initialize()
 
 int libev_loop()
 {
-	return ev_run(__loop, 0);
+	ev_run(__loop, 0);
+
+	return 0;
 }
 
 void libev_send(const void *data, size_t size, void *ctx)

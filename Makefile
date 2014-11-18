@@ -1,5 +1,5 @@
 CFLAGS += -std=gnu99 -Wall -Wextra
-LDFLAGS += -lev
+LDFLAGS += -lev -lm -pthread -lrt
 
 DEBUG ?=
 WERROR ?=
@@ -23,7 +23,8 @@ optimen: ${OPTIMEN_OBJS}
 	$(CC) -o $@ $^ ${LDFLAGS}
 
 test: ${OPTIMEN_TEST_OBJS}
-	$(CC) -o optimen.test $^ -lcheck
+	$(CC) -o optimen.test $^ -lcheck $(LDFLAGS)
+	@mkdir -p test/empty_directory_for_ls
 	./optimen.test
 
 clean:
