@@ -45,7 +45,7 @@ void libev_send(const void *data, size_t size, void *ctx)
 	tbuf_insert(&__optimen_resp, data, size);
 }
 
-void send_to_optimen(const char *data, size_t size)
+ssize_t send_to_optimen(const char *data, size_t size)
 {
 	if (__ctx.data == NULL) {
 		assert(__optimen_init_ctx_cb != NULL);
@@ -53,7 +53,7 @@ void send_to_optimen(const char *data, size_t size)
 	}
 
 	assert(__optimen_read_cb != NULL);
-	__optimen_read_cb(data, size, &__ctx);
+	return __optimen_read_cb(data, size, &__ctx);
 }
 
 void recv_from_optimen(const char **data, size_t *size)
