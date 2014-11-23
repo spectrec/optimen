@@ -30,13 +30,23 @@ enum optimen_ret {
 	OPTIMEN_RET_ERROR = 1,
 };
 
-struct optimen_ctx {
+enum optimen_command {
+    OPTIMEN_COMMAND_UNKNOWN = 0,
+    OPTIMEN_COMMAND_LS = 1,
+    OPTIMEN_COMMAND_FILE_OPEN = 2,
+    OPTIMEN_COMMAND_FILE_READ = 3,
+    OPTIMEN_COMMAND_FILE_CLOSE = 4,
+    OPTIMEN_COMMAND_MAX,
 };
 
 enum optimen_file_type {
 	OPTIMEN_FILE_TYPE_REG,
 	OPTIMEN_FILE_TYPE_DIR,
 	OPTIMEN_FILE_TYPE_OTHER,
+};
+
+struct optimen_ctx {
+    FILE *f;
 };
 
 typedef enum optimen_ret (* optimen_command_handler_t)(struct tbuf *resp,
@@ -49,22 +59,34 @@ static enum optimen_ret optimen_process_command_unknown(struct tbuf *resp,
 static enum optimen_ret optimen_process_command_ls(struct tbuf *resp,
 						   const char *args,
 						   struct optimen_ctx *ctx);
-
-enum optimen_command {
-	OPTIMEN_COMMAND_UNKNOWN = 0,
-	OPTIMEN_COMMAND_LS = 1,
-	OPTIMEN_COMMAND_MAX,
-};
+static enum optimen_ret optimen_process_command_file_open(struct tbuf *resp,
+                           const char *args,
+                           struct optimen_ctx *ctx);
+static enum optimen_ret optimen_process_command_file_read(struct tbuf *resp,
+                           const char *args,
+                           struct optimen_ctx *ctx);
+static enum optimen_ret optimen_process_command_file_close(struct tbuf *resp,
+                           const char *args,
+                           struct optimen_ctx *ctx);
 
 static optimen_command_handler_t optimen_command_handlers[OPTIMEN_COMMAND_MAX] = {
 	[OPTIMEN_COMMAND_UNKNOWN] = optimen_process_command_unknown,
 	[OPTIMEN_COMMAND_LS] = optimen_process_command_ls,
+    [OPTIMEN_COMMAND_FILE_OPEN] = optimen_process_command_file_open,
+    [OPTIMEN_COMMAND_FILE_READ] = optimen_process_command_file_read,
+    [OPTIMEN_COMMAND_FILE_CLOSE] = optimen_process_command_file_close
 };
 
 static enum optimen_command optimen_detect_command(const char *command)
 {
 	if (strncasecmp(command, STR_SIZE("ls")) == 0)
 		return OPTIMEN_COMMAND_LS;
+    if (strncasecmp(command, STR_SIZE("file_open")) == 0)
+        return OPTIMEN_COMMAND_FILE_OPEN;
+    if (strncasecmp(command, STR_SIZE("file_read")) == 0)
+        return OPTIMEN_COMMAND_FILE_READ;
+    if (strncasecmp(command, STR_SIZE("file_close")) == 0)
+        return OPTIMEN_COMMAND_FILE_CLOSE;
 
 	return OPTIMEN_COMMAND_UNKNOWN;
 }
@@ -148,23 +170,27 @@ static enum optimen_ret optimen_process_command_ls(struct tbuf *resp,
 						   const char *args,
 						   struct optimen_ctx *ctx)
 {
+    if (ctx->f != NULL) {
+        tbuf_insert(resp, ERROR("'ls' - is not allowed now"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
 	if (*args == '\0') {
-		tbuf_append(resp, ERROR("required argument"));
+        tbuf_insert(resp, ERROR("'ls' - required argument"));
 
 		return OPTIMEN_RET_ERROR;
-	}
-
-	(void)ctx;
+    }
 
 	DIR *d __attribute__((cleanup(close_dir))) = opendir(args);
 	if (d == NULL) {
 		log_e("can't open dir `%s': %s", args, strerror(errno));
-		tbuf_append(resp, ERROR("can't open specified directory"));
+        tbuf_insert(resp, ERROR("can't open specified directory"));
 
 		return OPTIMEN_RET_ERROR;
 	}
 
-	tbuf_insert(resp, OK("list files:"));
+    tbuf_insert(resp, OK("list files:"));
 
 	int ret = 0;
 	struct dirent dent, *pdent = NULL;
@@ -188,9 +214,158 @@ static enum optimen_ret optimen_process_command_ls(struct tbuf *resp,
 		return OPTIMEN_RET_ERROR;
 	}
 
-	tbuf_append(resp, STR_SIZE(".\r\n"));
+    tbuf_append(resp, STR_SIZE(".\r\n"));
 
 	return OPTIMEN_RET_OK;
+}
+
+static enum optimen_ret optimen_process_command_file_open(struct tbuf *resp,
+                                                          const char *args,
+                                                          struct optimen_ctx *ctx)
+{
+    if (ctx->f != NULL) {
+        tbuf_insert(resp, ERROR("'file_open' - file is open already"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    if (*args == '\0') {
+        tbuf_insert(resp, ERROR("'file_open' - required argument"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    ctx->f = fopen(args, "rb");
+    if (ctx->f == NULL) {
+        log_e("can't open file `%s': %s", args, strerror(errno));
+        tbuf_insert(resp, ERROR("'file_open' - can't open file"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    tbuf_insert(resp, OK(""));
+
+    return OPTIMEN_RET_OK;
+}
+
+static enum optimen_ret optimen_process_command_file_read(struct tbuf *resp,
+                                                          const char *args,
+                                                          struct optimen_ctx *ctx)
+{
+    static __thread void *buf;
+    static __thread size_t buf_size;
+
+    if (ctx->f == NULL){
+        tbuf_insert(resp, ERROR("'file_read' - file isn't open yet"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+    // offset
+    const char *args_begin = args;
+
+    while (*args && isspace(*args) == 0)
+        args++;
+
+    const char *string_offset = strndupa(args_begin, args - args_begin);
+
+    if (*string_offset == '\0') {
+        tbuf_insert(resp, ERROR("'file_read' - required offset argument"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+    // spaces
+    while (*args && isspace(*args) != 0)
+        args++;
+
+    args_begin = args;
+    while (*args)
+        args++;
+    // size    
+    const char *string_size = strndupa(args_begin, args - args_begin);
+
+    if (*string_size == '\0') {
+        tbuf_insert(resp, ERROR("'file_read' - required size argument"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    char *end = NULL;    
+    long offset = strtol(string_offset, &end, 10);
+    if (*end != '\0') {
+        log_e("can't convert offset from `%s'", string_offset);
+        tbuf_insert(resp, ERROR("'file_read' - can't convert offset"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    long size = strtol(string_size, &end, 10);
+    if (*end != '\0' && *end != '\r' && *end != '\n') {
+        log_e("can't convert size from `%s'", string_size);
+        tbuf_insert(resp, ERROR("'file_read' - can't convert size"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    if (fseek(ctx->f, offset, SEEK_SET) != 0) {
+        log_e("can't fseek to `%l': %s", offset, strerror(errno));
+        tbuf_insert(resp, ERROR("'file_read' - can't fseek"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    if ((size_t)size > buf_size) {
+        void *tmp = realloc(buf, size + 1);
+        if (!tmp) {
+            log_e("can't realloc: %s", strerror(errno));
+            tbuf_insert(resp, ERROR("'file_read' - internal error"));
+
+            return OPTIMEN_RET_ERROR;
+        }
+
+        buf = tmp;
+        buf_size = size + 1;
+    }
+
+    size_t bytes = fread(buf, 1, size, ctx->f);
+    if (bytes <= 0) {
+        if (feof(ctx->f) == 0 && ferror(ctx->f) != 0) {
+            log_e("error occured, while reading data: %s", strerror(errno));
+            tbuf_insert(resp, ERROR("'file_read' - internal error"));
+
+            return OPTIMEN_RET_ERROR;
+        }
+    }
+
+    tbuf_reset(resp);
+    tbuf_printf(resp, "OK %d\r\n%.*s", bytes, (int)bytes, buf);
+
+    return OPTIMEN_RET_OK;
+}
+
+static enum optimen_ret optimen_process_command_file_close(struct tbuf *resp,
+                                                          const char *args,
+                                                          struct optimen_ctx *ctx)
+{
+    if (ctx->f == NULL) {
+        tbuf_insert(resp, ERROR("'file_close' - file isn't open yet"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    (void)args;
+
+    if (fclose(ctx->f) != 0) {
+        log_e("can't close file: %s", strerror(errno));
+        tbuf_insert(resp, ERROR("can't close file"));
+
+        return OPTIMEN_RET_ERROR;
+    }
+
+    ctx->f = NULL;
+
+    tbuf_insert(resp, OK(""));
+
+    return OPTIMEN_RET_OK;
 }
 
 static ssize_t optimen_read_command_cb(const char *data, size_t size,
@@ -262,11 +437,20 @@ static ssize_t optimen_read_command_cb(const char *data, size_t size,
 
 static void optimen_ctx_init(struct libev_conn_ctx *ctx)
 {
-	ctx->data = calloc(1, sizeof(struct optimen_ctx));
+    ctx->data = calloc(1, sizeof(struct optimen_ctx));
 }
 
 static void optimen_ctx_destroy(struct libev_conn_ctx *ctx)
 {
+    struct optimen_ctx *tmp = (struct optimen_ctx *)(ctx->data);
+    if (tmp == NULL)
+        return;
+
+    if (tmp->f != NULL) {
+        fclose(tmp->f);
+        tmp->f = NULL;
+    }
+
 	free(ctx->data);
 	ctx->data = NULL;
 }

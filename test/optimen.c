@@ -145,12 +145,12 @@ START_TEST(optimen_test_ls_command)
 	// test `ls' without args
 	(void)send_to_optimen(STR_SIZE("ls\r\n"));
 	recv_from_optimen(&data, &size);
-	ck_assert(strncmp("ERROR required argument\r\n", data, size) == 0);
+    ck_assert(strncmp("ERROR 'ls' - required argument\r\n", data, size) == 0);
 
 	// once more
 	(void)send_to_optimen(STR_SIZE("ls     \r\n"));
 	recv_from_optimen(&data, &size);
-	ck_assert(strncmp("ERROR required argument\r\n", data, size) == 0);
+    ck_assert(strncmp("ERROR 'ls' - required argument\r\n", data, size) == 0);
 
 	// test `ls' with non existing folder
 	(void)send_to_optimen(STR_SIZE("ls  non_existing_path   \r\n"));
@@ -175,7 +175,7 @@ START_TEST(optimen_test_ls_command)
 	(void)send_to_optimen(STR_SIZE("ls  test/empty_directory_for_ls\r\n"));
 	recv_from_optimen(&data, &size);
 	if (get_expected_ls_resp("test/empty_directory_for_ls", &t) != 0)
-		ck_abort_msg("can't get expected ls for `test/empty_directory_for_ls'");
+        ck_abort_msg("can't get expected ls for `test/empty_directory_for_ls'");
 	ck_assert(strncmp(t.data, data, size) == 0);
 
 	// test `ls' with non-empty directory
@@ -184,6 +184,136 @@ START_TEST(optimen_test_ls_command)
 	if (get_expected_ls_resp("test", &t) != 0)
 		ck_abort_msg("can't get expected ls for `test'");
 	ck_assert(strncmp(t.data, data, size) == 0);
+}
+END_TEST
+
+START_TEST(optimen_test_file_open_command)
+{
+    size_t size;
+    const char *data;
+
+    (void)send_to_optimen(STR_SIZE("file_open\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("ERROR 'file_open' - required argument\r\n", data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_open ../ololo.txt\r\n"));
+    recv_from_optimen(&data, &size);    
+    ck_assert(strncmp("ERROR 'file_open' - can't open file\r\n", data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_open test/etc/file_read_test.data\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK \r\n", data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_open test/etc/file_read_test.data\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("ERROR 'file_open' - file is open already\r\n", data, size) == 0);
+}
+END_TEST
+
+START_TEST(optimen_test_file_close_command)
+{
+    size_t size;
+    const char *data;
+
+    (void)send_to_optimen(STR_SIZE("file_close\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("ERROR 'file_close' - file isn't open yet\r\n", data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_open test/etc/file_read_test.data\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK \r\n", data , size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_close\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK \r\n", data, size) == 0);
+}
+END_TEST
+
+START_TEST(optimen_test_file_read_command)
+{
+    size_t size;
+    const char *data;
+
+    (void)send_to_optimen(STR_SIZE("file_open test/etc/file_read_test.data\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK \r\n", data , size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_read\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("ERROR 'file_read' - required offset argument\r\n", data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_read 0\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("ERROR 'file_read' - required size argument\r\n", data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_read s 1024\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("ERROR 'file_read' - can't convert offset\r\n", data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_read 0 s\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("ERROR 'file_read' - can't convert size\r\n", data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_read -10 1024\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("ERROR 'file_read' - can't fseek\r\n", data, size) == 0);
+
+    // very long offset
+    memset((void *)data, 0, size);
+    (void)send_to_optimen(STR_SIZE("file_read 3000 16\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK 0\r\n", data, size) == 0);
+
+    FILE *f = fopen("test/etc/file_read_test.data", "rb");
+    ck_assert(f != NULL);
+
+    void *f_data = NULL;
+    f_data = realloc(f_data, 64);
+    size_t f_bytes = fread(f_data, 1, 16, f);
+    ck_assert(f_bytes != 0);
+
+    (void)send_to_optimen(STR_SIZE("file_read 0 16\r\n"));
+    recv_from_optimen(&data, &size);
+    char buf[32] = {0};
+    sprintf(buf, "OK 16\r\n%.*s", 16, (char *)f_data);
+    ck_assert(strncmp(buf, data, size) == 0);
+
+    // one more block
+    (void)send_to_optimen(STR_SIZE("file_read 16 16\r\n"));
+    recv_from_optimen(&data, &size);
+    fseek(f, 16, SEEK_SET);
+    f_bytes = fread(f_data, 1, 16, f);
+    ck_assert(f_bytes != 0);
+    memset(&buf, 0, sizeof(buf));
+    sprintf(buf, "OK 16\r\n%.*s", 16, (char *)f_data);
+    ck_assert(strncmp(buf, data, size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_close\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK \r\n", data, size) == 0);
+
+    fclose(f);
+
+    free(f_data);
+}
+END_TEST
+
+START_TEST(optimen_test_file_read_empty_file_command)
+{
+    size_t size;
+    const char *data;
+
+    (void)send_to_optimen(STR_SIZE("file_open test/etc/optimen.conf.empty\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK \r\n", data , size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_read 0 16\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK 0\r\n", data , size) == 0);
+
+    (void)send_to_optimen(STR_SIZE("file_close\r\n"));
+    recv_from_optimen(&data, &size);
+    ck_assert(strncmp("OK \r\n", data, size) == 0);
 }
 END_TEST
 
@@ -198,6 +328,10 @@ Suite *optimen_suite(void)
 	tcase_add_test(tc, optimen_test_unknown_cmd);
 	tcase_add_test(tc, optimen_test_read_parser);
 	tcase_add_test(tc, optimen_test_ls_command);
+    tcase_add_test(tc, optimen_test_file_open_command);
+    tcase_add_test(tc, optimen_test_file_close_command);
+    tcase_add_test(tc, optimen_test_file_read_command);
+    tcase_add_test(tc, optimen_test_file_read_empty_file_command);
 
 	suite_add_tcase(s, tc);
 
