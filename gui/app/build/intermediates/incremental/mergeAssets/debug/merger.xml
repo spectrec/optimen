@@ -1,11 +1,2 @@
 <?xml version="1.0" encoding="utf-8"?>
-<merger version="2" >
-
-    <dataSet config="main" >
-        <source path="/home/yura/optimen/gui/app/src/main/assets" />
-    </dataSet>
-    <dataSet config="debug" >
-        <source path="/home/yura/optimen/gui/app/src/debug/assets" />
-    </dataSet>
-
-</merger>
+<merger version="3"><dataSet config="main"><source path="/home/spectre/studies/9_sem/8.технологии_командной_разработки_по/project/gui/app/src/main/assets"/></dataSet><dataSet config="debug"><source path="/home/spectre/studies/9_sem/8.технологии_командной_разработки_по/project/gui/app/src/debug/assets"/></dataSet></merger>
