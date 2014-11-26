@@ -5,7 +5,7 @@ import os
 
 _port = 12345
 _ip = "127.0.0.1"
-output_name = "file_read_test_result.data"
+output_name = "bg.png"
 
 
 def create_socket():
@@ -19,8 +19,7 @@ def send_message(fd, message):
 
 
 def recv_message(fd, size):
-	data = fd.recv(size)
-	return data.decode('utf-8')
+	return fd.recv(size)
 
 
 def close_fd(fd, output, message):
@@ -33,34 +32,33 @@ def close_fd(fd, output, message):
 
 if __name__ == "__main__":
 	fd = create_socket()
-	output = open(output_name, 'w+')
+	output = open(output_name, 'wb+')
 	
-	message_to = "file_open test/etc/file_read_test.data\r\n"
+	message_to = "file_open test/etc/bg.png\r\n"
 	send_message(fd, message_to)
 	
 	message_from = recv_message(fd, 1024)
-
-	if "ERROR" in message_from:
-		close_fd(fd, output, message_from)
+	lines = message_from.split(b'\r\n')
+	if len(lines) < 1 or b'ERROR' in lines[0]:
+		close_fd(fd, output, "bad answer from server")
 
 	offset = 0
-	size = 16
+	size = 4096
 	
 	while True:
 		message_to = "file_read {0} {1}\r\n".format(offset, size)
 		send_message(fd, message_to)
 		
 		message_from = recv_message(fd, 1024)
-		if "ERROR" in message_from:
-			close_fd(fd, output, message_from)
 		
-		lines = message_from.split('\r\n')
-		if len(lines) != 2:
-			close_fde(fd, output, "bad answer from server")
+		lines = message_from.split(b'\r\n')
+		if len(lines) < 1 or b'ERROR' in lines[0]:
+			close_fd(fd, output, "bad answer from server")
 
-		output.write(lines[1])		
+		data = message_from[len(lines[0])+2:]
+		output.write(data)
 		
-		bytes_count = int(lines[0].split()[1])
+		bytes_count = int(lines[0].decode('utf-8').split()[1])
 		if bytes_count == 0:
 			break
 
@@ -72,7 +70,7 @@ if __name__ == "__main__":
 	fd.close()
 	output.close()
 
-	if os.system("diff " + output_name + " etc/file_read_test.data") == 0:
+	if os.system("diff " + output_name + " etc/bg.png") == 0:
 		print("TEST PASSED:TRUE")
 	else:
 		print("TEST PASSED:FALSE")
