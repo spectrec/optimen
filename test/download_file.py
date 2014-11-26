@@ -18,8 +18,24 @@ def send_message(fd, message):
 	fd.send(message.encode())
 
 
-def recv_message(fd, size):
-	return fd.recv(size)
+def recv_message(fd):
+	all_data = fd.recv(1024)
+	lines = all_data.split(b'\r\n')
+	if len(lines) < 1 or b'ERROR' in lines[0]:
+		return None
+
+	size = 0
+	headers = lines[0].decode('utf-8').split()
+	if len(headers) >= 2:
+		size= int(headers[1])
+
+	offset = size
+	part = all_data[len(lines[0])+2:]
+	message = part
+	size = size - len(part)
+	message = message + fd.recv(size)
+
+	return (message, offset)
 
 
 def close_fd(fd, output, message):
@@ -37,9 +53,8 @@ if __name__ == "__main__":
 	message_to = "file_open test/etc/bg.png\r\n"
 	send_message(fd, message_to)
 	
-	message_from = recv_message(fd, 1024)
-	lines = message_from.split(b'\r\n')
-	if len(lines) < 1 or b'ERROR' in lines[0]:
+	result = recv_message(fd)
+	if not result:
 		close_fd(fd, output, "bad answer from server")
 
 	offset = 0
@@ -49,16 +64,13 @@ if __name__ == "__main__":
 		message_to = "file_read {0} {1}\r\n".format(offset, size)
 		send_message(fd, message_to)
 		
-		message_from = recv_message(fd, 1024)
-		
-		lines = message_from.split(b'\r\n')
-		if len(lines) < 1 or b'ERROR' in lines[0]:
+		result = recv_message(fd)
+		if not result:
 			close_fd(fd, output, "bad answer from server")
 
-		data = message_from[len(lines[0])+2:]
-		output.write(data)
+		output.write(result[0])
 		
-		bytes_count = int(lines[0].decode('utf-8').split()[1])
+		bytes_count = result[1]
 		if bytes_count == 0:
 			break
 
