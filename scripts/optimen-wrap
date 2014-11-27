@@ -1,0 +1,108 @@
+#! /bin/sh
+
+OPTIMEN='/usr/local/bin/optimen'
+OPTIMEN_PID_FILE='/var/run/optimen.pid'
+PID_FILE='/var/run/optimen-wrap.pid'
+
+process_exists() {
+	pid=$1
+	name=$2
+
+	count=`ps aux | fgrep $pid | grep -v 'grep' | fgrep -c $name`
+	if [ $count -eq 0 ]; then
+		# process doesn't exists
+		return 1;
+	fi
+
+	return 0;
+}
+
+status() {
+	pid=`cat $OPTIMEN_PID_FILE`
+	if process_exists $pid 'optimen'; then
+		echo optimen is running
+		return 0;
+	else
+		echo optimen is stopped
+		return 1;
+	fi;
+}
+
+start() {
+	echo starting optimen
+	if [ ! -f $PID_FILE ]; then
+		echo $$ > $PID_FILE
+	else
+		pid=`cat $PID_FILE`
+		if process_exists $pid 'optimen-wrap'; then
+			return 0
+		fi
+	fi
+
+	echo $$ > $PID_FILE
+
+	while :
+	do
+		pid=`cat $OPTIMEN_PID_FILE`
+		if process_exists $pid 'optimen'; then
+			sleep 1
+		else
+			$OPTIMEN
+		fi
+	done
+}
+
+killproc() {
+	pidfile=$1
+	procname=$2
+
+	pid=`cat $pidfile`
+	if ! process_exists $pid $procname; then
+		return 0
+	fi
+
+	# soft kill
+	kill -TERM $pid
+	sleep 1
+
+	if ! process_exists $pid $procname; then
+		return 0
+	fi
+
+	# hard kill
+	kill -KILL $pid
+	sleep 1
+
+	if ! process_exists $pid $procname; then
+		return 0
+	fi
+
+	echo "can't stop $procname with pid $pid"
+	return 1
+}
+
+stop() {
+	echo stopping optimen
+	killproc $PID_FILE 'optimen-wrap'
+	killproc $OPTIMEN_PID_FILE 'optimen'
+}
+
+case $1 in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart)
+		stop
+		sleep 1
+		start
+		;;
+	reload)
+		killall -HUP optimen
+		;;
+	status)
+		status
+		;;
+esac
