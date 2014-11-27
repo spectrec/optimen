@@ -14,10 +14,14 @@ import android.widget.SimpleAdapter;
 import android.widget.Toast;
 import android.app.AlertDialog;
 
+import java.io.File;
+import java.net.Socket;
+
 
 public class Optimen extends Activity {
 
     //==============================================================================================
+    String optimen_directory = "/sdcard/Optimen/";
     optimen_list optimen_lst;
     config_reader config;
     String current_path;
@@ -32,11 +36,11 @@ public class Optimen extends Activity {
         config = new config_reader();
 
         // create Optimen directory
-        if (os_helper.create_directory("/sdcard/Optimen") == 1)
-            config.write_config_to_file("/sdcard/Optimen/optimen_gui.conf");
+        if (os_helper.create_directory(optimen_directory) == 1)
+            config.write_config_to_file(optimen_directory + "optimen_gui.conf");
 
         // read configuration
-        config.read_config("/sdcard/Optimen/optimen_gui.conf");
+        config.read_config(optimen_directory + "optimen_gui.conf");
         config.print_config_data();
 
         current_path = new String("/");
@@ -102,7 +106,11 @@ public class Optimen extends Activity {
             builder.setPositiveButton("Да", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
-                    process_file(tmp.getName());
+                    try {
+                        process_file(tmp.getName());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             });
             builder.setNegativeButton("Нет", new DialogInterface.OnClickListener() {
@@ -138,10 +146,40 @@ public class Optimen extends Activity {
         update_list_view(optimen_lst);
     }
 
-    private void process_file(String filename){
-        Toast.makeText(getApplicationContext(),
-                "Файл - " + filename,
-                Toast.LENGTH_SHORT).show();
+    private void process_file(String filename) throws Exception {
+        try {
+            Socket socket = command_processor.process_command_file_open(config.get_port(),
+                                                                        config.get_ip(), filename);
+            if (socket == null)
+                throw new Exception("Downloading file failed");
+
+            // save file into optimen
+            Integer basename_pos = filename.lastIndexOf('/');
+            if (basename_pos == -1)
+                basename_pos = 0;
+            String local_file_name = optimen_directory + filename.substring(basename_pos);
+
+            File file = os_helper.open_file(local_file_name);
+            if (file == null)
+                throw new Exception("Can't create file: " + local_file_name);
+
+            Boolean eof = false;
+            Integer already_read = 0;
+            while (!eof) {
+                already_read = command_processor.process_command_file_read(socket, file, already_read);
+                eof = already_read == 0;
+
+                if (already_read == -1)
+                   throw new Exception("Can't recv file part (server error)");
+            }
+
+            if (!command_processor.process_command_file_close(socket))
+                throw new Exception("Closing file on server side failed");
+
+            Toast.makeText(getApplicationContext(), "File downloaded", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void update_list_view(optimen_list lst){
