@@ -5,7 +5,7 @@ import os
 
 _port = 12345
 _ip = "127.0.0.1"
-output_name = "file_read_test_result.data"
+output_name = "bg.png"
 
 
 def create_socket():
@@ -18,9 +18,24 @@ def send_message(fd, message):
 	fd.send(message.encode())
 
 
-def recv_message(fd, size):
-	data = fd.recv(size)
-	return data.decode('utf-8')
+def recv_message(fd):
+	all_data = fd.recv(1024)
+	lines = all_data.split(b'\r\n')
+	if len(lines) < 1 or b'ERROR' in lines[0]:
+		return None
+
+	size = 0
+	headers = lines[0].decode('utf-8').split()
+	if len(headers) >= 2:
+		size= int(headers[1])
+
+	offset = size
+	part = all_data[len(lines[0])+2:]
+	message = part
+	size = size - len(part)
+	message = message + fd.recv(size)
+
+	return (message, offset)
 
 
 def close_fd(fd, output, message):
@@ -33,34 +48,29 @@ def close_fd(fd, output, message):
 
 if __name__ == "__main__":
 	fd = create_socket()
-	output = open(output_name, 'w+')
+	output = open(output_name, 'wb+')
 	
-	message_to = "file_open test/etc/file_read_test.data\r\n"
+	message_to = "file_open test/etc/bg.png\r\n"
 	send_message(fd, message_to)
 	
-	message_from = recv_message(fd, 1024)
-
-	if "ERROR" in message_from:
-		close_fd(fd, output, message_from)
+	result = recv_message(fd)
+	if not result:
+		close_fd(fd, output, "bad answer from server")
 
 	offset = 0
-	size = 16
+	size = 4096
 	
 	while True:
 		message_to = "file_read {0} {1}\r\n".format(offset, size)
 		send_message(fd, message_to)
 		
-		message_from = recv_message(fd, 1024)
-		if "ERROR" in message_from:
-			close_fd(fd, output, message_from)
-		
-		lines = message_from.split('\r\n')
-		if len(lines) != 2:
-			close_fde(fd, output, "bad answer from server")
+		result = recv_message(fd)
+		if not result:
+			close_fd(fd, output, "bad answer from server")
 
-		output.write(lines[1])		
+		output.write(result[0])
 		
-		bytes_count = int(lines[0].split()[1])
+		bytes_count = result[1]
 		if bytes_count == 0:
 			break
 
@@ -72,7 +82,7 @@ if __name__ == "__main__":
 	fd.close()
 	output.close()
 
-	if os.system("diff " + output_name + " etc/file_read_test.data") == 0:
+	if os.system("diff " + output_name + " etc/bg.png") == 0:
 		print("TEST PASSED:TRUE")
 	else:
 		print("TEST PASSED:FALSE")

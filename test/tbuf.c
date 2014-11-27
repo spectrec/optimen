@@ -78,6 +78,25 @@ START_TEST(test_tbuf_printf)
 }
 END_TEST
 
+START_TEST(test_tbuf_append_vs_printf)
+{
+	struct tbuf t1, t2;
+        tbuf_init(&t1);
+	tbuf_init(&t2);
+
+	tbuf_printf(&t1, "%d\r\n%.*s", 10, 3,  "a\0bcde");
+	tbuf_printf(&t2, "%d\r\n", 10);
+	tbuf_append(&t2, "a\0bcde", 3);
+
+	ck_assert(memcmp(t1.data, "10\r\na\0b", 6) == 0);
+	ck_assert(memcmp(t2.data, "10\r\na\0b", 6) == 0);
+
+	tbuf_delete(&t1);
+	tbuf_delete(&t2);
+}
+END_TEST
+
+
 Suite *tbuf_suite(void)
 {
 	Suite *s;
@@ -90,6 +109,7 @@ Suite *tbuf_suite(void)
 	tcase_add_test(tc_core, test_tbuf_shrink);
 	tcase_add_test(tc_core, test_tbuf_insert);
 	tcase_add_test(tc_core, test_tbuf_printf);
+	tcase_add_test(tc_core, test_tbuf_append_vs_printf);
 
 	suite_add_tcase(s, tc_core);
 
