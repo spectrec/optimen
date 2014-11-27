@@ -4,7 +4,7 @@ import os
 
 
 _port = 12345
-_ip = "127.0.0.1"
+_ip = "192.168.0.100"
 output_name = "bg.png"
 
 
@@ -33,7 +33,10 @@ def recv_message(fd):
 	part = all_data[len(lines[0])+2:]
 	message = part
 	size = size - len(part)
-	message = message + fd.recv(size)
+	while size > 0:
+		tmp_data = fd.recv(size)
+		message += tmp_data
+		size -= len(tmp_data)
 
 	return (message, offset)
 
@@ -47,44 +50,49 @@ def close_fd(fd, output, message):
 
 
 if __name__ == "__main__":
-	fd = create_socket()
-	output = open(output_name, 'wb+')
+	try:
+		fd = create_socket()
+		output = open(output_name, 'wb+')
 	
-	message_to = "file_open test/etc/bg.png\r\n"
-	send_message(fd, message_to)
-	
-	result = recv_message(fd)
-	if not result:
-		close_fd(fd, output, "bad answer from server")
-
-	offset = 0
-	size = 4096
-	
-	while True:
-		message_to = "file_read {0} {1}\r\n".format(offset, size)
+		message_to = "file_open /bg.png\r\n"
 		send_message(fd, message_to)
-		
+	
 		result = recv_message(fd)
 		if not result:
 			close_fd(fd, output, "bad answer from server")
 
-		output.write(result[0])
+		offset = 0
+		size = 4096
+	
+		while True:
+			message_to = "file_read {0} {1}\r\n".format(offset, size)
+			send_message(fd, message_to)
 		
-		bytes_count = result[1]
-		if bytes_count == 0:
-			break
+			result = recv_message(fd)
+			if not result:
+				close_fd(fd, output, "bad answer from server")
 
-		offset = offset + bytes_count
+			output.write(result[0])
+		
+			bytes_count = result[1]
+			if bytes_count == 0:
+				break
 
-	message_to = "file_close\r\n"
-	send_message(fd, message_to)
+			offset = offset + bytes_count
 
-	fd.close()
-	output.close()
+		message_to = "file_close\r\n"
+		send_message(fd, message_to)
 
-	if os.system("diff " + output_name + " etc/bg.png") == 0:
-		print("TEST PASSED:TRUE")
-	else:
-		print("TEST PASSED:FALSE")
+		fd.close()
+		output.close()
 
-	os.remove(output_name)
+		if os.system("diff " + output_name + " etc/bg.png") == 0:
+			print("TEST PASSED:TRUE")
+		else:
+			print("TEST PASSED:FALSE")
+
+		os.remove(output_name)
+
+	except:
+		print("some errors...")
+		os.remove(output_name)
