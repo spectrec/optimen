@@ -9,7 +9,7 @@ process_exists() {
 	name=$2
 
 	count=`ps aux | fgrep $pid | grep -v 'grep' | fgrep -c $name`
-	if [ $count -eq 0 ]; then
+	if [ "$count" -eq "0" ]; then
 		# process doesn't exists
 		return 1;
 	fi
