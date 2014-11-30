@@ -13,6 +13,7 @@ import android.widget.ListView;
 import android.widget.SimpleAdapter;
 import android.widget.Toast;
 import android.app.AlertDialog;
+import android.content.Intent;
 
 import java.io.File;
 import java.net.Socket;
@@ -32,14 +33,14 @@ public class Optimen extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.optimen);
 
-        config = new config_reader();
+        config = new config_reader(optimen_directory + "optimen_gui.conf");
 
         // create Optimen directory
         if (os_helper.create_directory(optimen_directory) == 1)
-            config.write_config_to_file(optimen_directory + "optimen_gui.conf");
+            config.write_config_to_file();
 
         // read configuration
-        config.read_config(optimen_directory + "optimen_gui.conf");
+        config.read_config();
         config.print_config_data();
 
         current_path = new String("/");
@@ -82,10 +83,16 @@ public class Optimen extends Activity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_settings) {
+            Intent settings = new Intent(Optimen.this, Settings.class);
+            settings.putExtra("ip", config.get_ip());
+            settings.putExtra("port", config.get_port());
+            settings.putExtra("config", config);
+            startActivity(settings);
             return true;
         }
         else if (id == R.id.action_update) {
             try {
+                config.read_config();
                 optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
                 update_list_view(optimen_lst);
             }

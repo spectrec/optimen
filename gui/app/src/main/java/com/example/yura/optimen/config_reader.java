@@ -8,22 +8,24 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Serializable;
 
 /**
  * Created by yura on 26.10.14.
  */
-public class config_reader {
+public class config_reader implements Serializable{
     private Integer default_port = 12345;
     private String default_ip = "192.168.0.100";
 
-    public config_reader(){
+    public config_reader(String filename){
         port = default_port;
         ip = default_ip;
+        conf_filename = filename;
     }
 
-    public void read_config(String config_name){
+    public void read_config(){
         try{
-            FileReader f = new FileReader(config_name);
+            FileReader f = new FileReader(conf_filename);
             BufferedReader br = new BufferedReader(f);
 
             String line;
@@ -43,9 +45,9 @@ public class config_reader {
         }
     }
 
-    public void write_config_to_file(String filename){
+    public void write_config_to_file(){
         try {
-            File f = new File(filename);
+            File f = new File(conf_filename);
             PrintWriter out = new PrintWriter(f);
             out.write("tcp_port=" + Integer.toString(port) + "\n");
             out.write("server_ip=" + ip);
@@ -69,6 +71,15 @@ public class config_reader {
         return ip;
     }
 
+    public void set_port(Integer new_port) {
+        port = new_port;
+    }
+
+    public void set_ip(String new_ip) {
+        ip = new_ip;
+    }
+
     private Integer port;
     private String ip;
+    private String conf_filename;
 }
