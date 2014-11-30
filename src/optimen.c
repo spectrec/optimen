@@ -47,6 +47,7 @@ enum optimen_file_type {
 
 struct optimen_ctx {
 	FILE *f;
+	off_t current_offset;
 };
 
 typedef enum optimen_ret (* optimen_command_handler_t)(struct tbuf *resp,
@@ -235,6 +236,8 @@ static enum optimen_ret optimen_process_command_file_open(struct tbuf *resp,
 		return OPTIMEN_RET_ERROR;
 	}
 
+	ctx->current_offset = 0;
+
 	ctx->f = fopen(args, "rb");
 	if (ctx->f == NULL) {
 		log_e("can't open file `%s': %s", args, strerror(errno));
@@ -290,7 +293,7 @@ static enum optimen_ret optimen_process_command_file_read(struct tbuf *resp,
 	}
 
 	char *end = NULL;
-	int32_t offset = strtol(string_offset, &end, 10);
+	off_t offset = strtoll(string_offset, &end, 10);
 	if (*end != '\0') {
 		log_e("can't convert offset from `%s'", string_offset);
 		tbuf_insert(resp, ERROR("'file_read' - can't convert offset"));
@@ -298,7 +301,7 @@ static enum optimen_ret optimen_process_command_file_read(struct tbuf *resp,
 		return OPTIMEN_RET_ERROR;
 	}
 
-	int32_t size = strtol(string_size, &end, 10);
+	off_t size = strtoll(string_size, &end, 10);
 	if (*end != '\0' && *end != '\r' && *end != '\n') {
 		log_e("can't convert size from `%s'", string_size);
 		tbuf_insert(resp, ERROR("'file_read' - can't convert size"));
@@ -306,8 +309,8 @@ static enum optimen_ret optimen_process_command_file_read(struct tbuf *resp,
 		return OPTIMEN_RET_ERROR;
 	}
 
-	if (fseek(ctx->f, offset, SEEK_SET) != 0) {
-		log_e("can't fseek to `%d': %s", offset, strerror(errno));
+	if (ctx->current_offset != offset && fseek(ctx->f, offset, SEEK_SET) != 0) {
+		log_e("can't fseek to `%lld': %s", offset, strerror(errno));
 		tbuf_insert(resp, ERROR("'file_read' - can't fseek"));
 
 		return OPTIMEN_RET_ERROR;
@@ -336,6 +339,8 @@ static enum optimen_ret optimen_process_command_file_read(struct tbuf *resp,
 		}
 	}
 
+	ctx->current_offset = offset + bytes;
+
 	tbuf_reset(resp);
 	tbuf_printf(resp, "OK %zu\r\n", bytes);
 	tbuf_append(resp, buf, bytes);
@@ -363,6 +368,7 @@ static enum optimen_ret optimen_process_command_file_close(struct tbuf *resp,
 	}
 
 	ctx->f = NULL;
+	ctx->current_offset = 0;
 
 	tbuf_insert(resp, OK(""));
 
