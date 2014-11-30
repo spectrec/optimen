@@ -19,7 +19,6 @@ import java.net.Socket;
 
 
 public class Optimen extends Activity {
-
     //==============================================================================================
     String optimen_directory = "/sdcard/Optimen/";
     optimen_list optimen_lst;
@@ -45,9 +44,6 @@ public class Optimen extends Activity {
 
         current_path = new String("/");
 
-        // get testing data in '/'
-        optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
-
         // click by item
         OnItemClickListener itemClickListener = new OnItemClickListener() {
             @Override
@@ -56,9 +52,20 @@ public class Optimen extends Activity {
             }
         };
 
-        listView = (ListView)findViewById(R.id.listview);
+        listView = (ListView) findViewById(R.id.listview);
         listView.setOnItemClickListener(itemClickListener);
+
+        // get testing data in '/'
+        try {
+            optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
+        }
+        catch (Exception e) {
+            Toast.makeText(getApplicationContext(), "Ошибка при получении списка файлов (проверьте соединение)", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         update_list_view(optimen_lst);
+
     }
 
     @Override
@@ -77,6 +84,17 @@ public class Optimen extends Activity {
         if (id == R.id.action_settings) {
             return true;
         }
+        else if (id == R.id.action_update) {
+            try {
+                optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
+                update_list_view(optimen_lst);
+            }
+            catch (Exception e) {
+                Toast.makeText(getApplicationContext(), "Ошибка при получении списка файлов (проверьте соединение)", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            return true;
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -93,11 +111,13 @@ public class Optimen extends Activity {
     private void processItemClick(AdapterView<?> adapterView, View view, int i, long l){
         final dir_data tmp = optimen_lst.get_element(i);
         // if element it is directory
-        if (tmp.getType() == dir_data.DIR){
+        if (tmp.getType() == dir_data.DIR)
+        {
             process_dir(tmp);
         }
         // if element it is file
-        else if (tmp.getType() == dir_data.FLD){
+        else if (tmp.getType() == dir_data.FLD)
+        {
             AlertDialog.Builder builder = new AlertDialog.Builder(Optimen.this);
             builder.setTitle("Информация");
             builder.setMessage("Скачать файл " + tmp.getName());
@@ -123,27 +143,37 @@ public class Optimen extends Activity {
     }
 
     private void process_dir(dir_data data){
-        if (data.getName().compareTo(".") == 0)
-            return;
-        // back
-        if (data.getName().compareTo("..") == 0){
-            int pos = -1;
-            for (int i = current_path.length()-2; i >= 0 && pos == -1; --i){
-                if (current_path.charAt(i) == '/')
-                    pos = i;
+        String tmp_current_path = current_path;
+
+        try {
+            if (data.getName().compareTo(".") == 0)
+                return;
+            // back
+            if (data.getName().compareTo("..") == 0) {
+                int pos = -1;
+                for (int i = tmp_current_path.length() - 2; i >= 0 && pos == -1; --i) {
+                    if (tmp_current_path.charAt(i) == '/')
+                        pos = i;
+                }
+                if (pos != -1)
+                    tmp_current_path = tmp_current_path.substring(0, pos + 1);
             }
-            if (pos != -1)
-                current_path = current_path.substring(0, pos+1);
+            // forward
+            else {
+                tmp_current_path += data.getName() + "/";
+            }
+
+            Log.i("Optimen", tmp_current_path);
+
+            optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), tmp_current_path);
+            update_list_view(optimen_lst);
         }
-        // forward
-        else {
-            current_path += data.getName() + "/";
+        catch (Exception e) {
+            Toast.makeText(getApplicationContext(), "Ошибка при переходе (проверьте соедниение)", Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        Log.i("Optimen", current_path);
-
-        optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
-        update_list_view(optimen_lst);
+        current_path = tmp_current_path;
     }
 
     private void process_file(String filename) throws Exception {
@@ -165,7 +195,8 @@ public class Optimen extends Activity {
 
             Boolean eof = false;
             Integer already_read = 0;
-            while (!eof) {
+            while (!eof)
+            {
                 already_read = command_processor.process_command_file_read(socket, file, already_read);
                 eof = already_read == 0;
 
@@ -177,8 +208,9 @@ public class Optimen extends Activity {
                 throw new Exception("Closing file on server side failed");
 
             Toast.makeText(getApplicationContext(), "File downloaded", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+        catch (Exception e) {
+            Toast.makeText(getApplicationContext(), "Ошибка при скачивании - " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 

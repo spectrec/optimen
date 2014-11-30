@@ -14,7 +14,7 @@ import java.io.PrintWriter;
  */
 public class config_reader {
     private Integer default_port = 12345;
-    private String default_ip = "192.168.0.108";
+    private String default_ip = "192.168.0.100";
 
     public config_reader(){
         port = default_port;

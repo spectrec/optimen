@@ -3,7 +3,6 @@ package com.example.yura.optimen;
 /**
  * Created by yura on 25.10.14.
  */
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;

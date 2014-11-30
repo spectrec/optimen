@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- From: file:/home/spectre/studies/9_sem/8.технологии_командной_разработки_по/project/gui/app/src/main/res/values-w820dp/dimens.xml -->
+    <!-- From: file:/home/yura/optimen/gui/app/src/main/res/values-w820dp/dimens.xml -->
     <eat-comment/>
     <dimen name="activity_horizontal_margin">64dp</dimen>
 </resources>

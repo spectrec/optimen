@@ -1,9 +1,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".Optimen" >
+    <item android:id="@+id/action_update"
+        android:title="@string/action_update"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
     <item android:id="@+id/action_settings"
         android:title="@string/action_settings"
         android:orderInCategory="100"
         android:showAsAction="never" />
 </menu>
-<!-- From: file:/home/spectre/studies/9_sem/8.технологии_командной_разработки_по/project/gui/app/src/main/res/menu/optimen.xml -->
+<!-- From: file:/home/yura/optimen/gui/app/src/main/res/menu/optimen.xml -->

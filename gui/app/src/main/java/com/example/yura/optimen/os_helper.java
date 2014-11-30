@@ -44,7 +44,8 @@ public class os_helper {
             }
 
             return file;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             Log.e("Optimen: ", e.getMessage());
         }
 
