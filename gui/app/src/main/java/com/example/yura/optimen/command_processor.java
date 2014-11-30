@@ -30,7 +30,7 @@ public class command_processor
             DataOutputStream out = get_sock_out(socket);
 
             String request = "file_open /" + file_name + "\n";
-            out.writeBytes(request);
+            out.write(request.getBytes());
             out.flush();
 
             String resp = in. readLine();
