@@ -7,6 +7,8 @@ import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -81,68 +83,48 @@ public class command_processor
             out.flush();
 
             // get response
-            DataInputStream din = new DataInputStream(socket.getInputStream());
-            String str = "";
+            DataInputStream in = new DataInputStream(socket.getInputStream());
+
+            // get header
+            String header = new String();
             while (true) {
-                char c = din.readChar();
-                str += c;
-                if (c == '\n' || c == '\r') {
-                    Log.w("Optimen: ", "READ line: " + str);
+                byte[] bytes = new byte[1];
+                in.read(bytes, 0, 1);
+                if ((char)bytes[0] == 'E')
                     return -1;
-                }
-                /*
-                din.read(buf);
-                String str = new String(buf, "UTF-8");
-                Log.e("Optimen: ", str);
-                break;
-*/
-                //char c = din.readChar();
-                //if (c == '\n') break;
-
+                if ((char)bytes[0] == '\n')
+                    break;
+                header += (char)bytes[0];
             }
 
-            /*
-            String resp = in.readLine();
-            Log.w("Optimen: ", "debug: received line " + resp);
-
-            if (!resp.contains("OK")) {
-                Log.w("Optimen: ", "can't process `file_read': " + resp);
+            String[] header_parts = header.split(" ");
+            if (header_parts.length < 2)
                 return -1;
-            }
 
-            // get read size
-            String return_size_str = resp.substring(resp.indexOf(' ') + 1);
-            Integer return_size = Integer.decode(return_size_str);
-
-            // this means `eof'
-            if (return_size == 0)
+            Integer size = Integer.decode(header_parts[1].trim());
+            if (size == 0)
                 return 0;
 
-            Integer readed = 0;
-            char data[] = new char[return_size];
-            while (readed < return_size) {
-                Integer left = return_size - readed;
-                Log.w("Optimen: ", "left: " + left.toString());
-                Integer ret = in.read(data, readed, left);
-                Log.w("Optimen: ", "readed: " + ret.toString());
+            already_read += size;
+            FileOutputStream f_stream = new FileOutputStream(file, true);
 
-                if (ret == -1)
-                    throw new Exception("read file error");
-
-                readed += ret;
+            while (size > 0) {
+                byte[] buf = new byte[size];
+                Integer readed = in.read(buf, 0, size);
+                size -= readed;
+                byte[] tmp = new byte[readed];
+                System.arraycopy(buf, 0, tmp, 0, readed);
+                f_stream.write(tmp);
             }
 
-            FileWriter fw = new FileWriter(file, true);
-            fw.write(data);
-            fw.flush();
-            fw.close();
-            */
+            f_stream.close();
 
-            //return -1;
+            return already_read;
         }
         catch (IOException e) {
             e.printStackTrace();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
 

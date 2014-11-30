@@ -37,7 +37,8 @@ public class os_helper {
                 // truncate file
                 FileWriter fw = new FileWriter(file);
                 fw.close();
-            } else if (!file.createNewFile()) {
+            }
+            else if (!file.createNewFile()) {
                 Log.w("Optimen: ", "can't create file: " + file_name);
 
                 return null;

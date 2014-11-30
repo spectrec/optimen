@@ -56,7 +56,6 @@ public class Optimen extends Activity {
         listView = (ListView) findViewById(R.id.listview);
         listView.setOnItemClickListener(itemClickListener);
 
-        // get testing data in '/'
         try {
             optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
         }
@@ -217,7 +216,7 @@ public class Optimen extends Activity {
             Toast.makeText(getApplicationContext(), "File downloaded", Toast.LENGTH_SHORT).show();
         }
         catch (Exception e) {
-            Toast.makeText(getApplicationContext(), "Ошибка при скачивании - " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "Ошибка при скачивании:\n" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
