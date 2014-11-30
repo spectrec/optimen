@@ -1,0 +1,43 @@
+#! /bin/sh
+
+OPTIMEN_WRAPPER='/usr/local/bin/optimen-wrap'
+
+start() {
+	/bin/sh $OPTIMEN_WRAPPER 'start' &
+}
+
+status() {
+	$OPTIMEN_WRAPPER 'status'
+}
+
+restart() {
+	/bin/sh $OPTIMEN_WRAPPER 'restart' &
+}
+
+reload() {
+	$OPTIMEN_WRAPPER 'reload'
+}
+
+stop() {
+	$OPTIMEN_WRAPPER 'stop'
+}
+
+case $1 in
+	start)
+		start
+		;;
+	status)
+		status
+		;;
+	restart)
+		restart
+		;;
+	reload)
+		reload
+		;;
+	stop)
+		stop
+		;;
+	*)
+		echo 'Usage: /etc/inid.d/optimen start|stop|restart|reload|status'
+esac

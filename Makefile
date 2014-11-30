@@ -10,7 +10,9 @@ ifeq (${DEBUG},1)
 CFLAGS += -ggdb3
 endif
 
-ifeq (${WERROR},1)
+ifeq (${WERROR},0)
+CFLAGS +=
+else
 CFLAGS += -Werror
 endif
 
@@ -34,6 +36,9 @@ clean:
 	@rm -f optimen.test
 
 install:
-	@echo install is not implemented yet
+	install etc/optimen.conf /usr/local/etc/optimen.conf.dist
+	install scripts/optimen-wrap -t /usr/local/bin/
+	install scripts/optimen -t /etc/init.d/
+	install optimen -t /usr/local/bin/
 
-.PHONY: optimen test clean
+.PHONY: optimen test clean install
