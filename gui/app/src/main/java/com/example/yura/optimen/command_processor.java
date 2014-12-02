@@ -8,7 +8,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
@@ -87,8 +86,8 @@ public class command_processor
 
             // get header
             String header = new String();
+            byte[] bytes = new byte[1];
             while (true) {
-                byte[] bytes = new byte[1];
                 in.read(bytes, 0, 1);
                 if ((char)bytes[0] == 'E')
                     return -1;
@@ -101,22 +100,19 @@ public class command_processor
             if (header_parts.length < 2)
                 return -1;
 
-            Integer size = Integer.decode(header_parts[1].trim());
+            Integer size = Integer.parseInt(header_parts[1].trim());
             if (size == 0)
                 return 0;
 
             already_read += size;
+
             FileOutputStream f_stream = new FileOutputStream(file, true);
-
+            byte[] buf = new byte[size];
             while (size > 0) {
-                byte[] buf = new byte[size];
-                Integer readed = in.read(buf, 0, size);
-                size -= readed;
-                byte[] tmp = new byte[readed];
-                System.arraycopy(buf, 0, tmp, 0, readed);
-                f_stream.write(tmp);
+                Integer bytes_count = in.read(buf, 0, size);
+                size -= bytes_count;
+                f_stream.write(buf, 0, bytes_count);
             }
-
             f_stream.close();
 
             return already_read;

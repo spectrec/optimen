@@ -57,10 +57,15 @@ public class Optimen extends Activity {
         listView.setOnItemClickListener(itemClickListener);
 
         try {
-            optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
+            optimen_lst = command_processor.process_command_ls(
+                    config.get_port(),
+                    config.get_ip(),
+                    current_path);
         }
         catch (Exception e) {
-            Toast.makeText(getApplicationContext(), "Ошибка при получении списка файлов (проверьте соединение)", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),
+                    "Ошибка при получении списка файлов (проверьте соединение)",
+                    Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -92,11 +97,16 @@ public class Optimen extends Activity {
         else if (id == R.id.action_update) {
             try {
                 config.read_config();
-                optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), current_path);
+                optimen_lst = command_processor.process_command_ls(
+                        config.get_port(),
+                        config.get_ip(),
+                        current_path);
                 update_list_view(optimen_lst);
             }
             catch (Exception e) {
-                Toast.makeText(getApplicationContext(), "Ошибка при получении списка файлов (проверьте соединение)", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(),
+                        "Ошибка при получении списка файлов (проверьте соединение)",
+                        Toast.LENGTH_SHORT).show();
                 return false;
             }
             return true;
@@ -134,7 +144,8 @@ public class Optimen extends Activity {
                 public void onClick(DialogInterface dialogInterface, int i) {
                     try {
                         process_file(tmp.getName());
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -171,11 +182,16 @@ public class Optimen extends Activity {
 
             Log.i("Optimen", tmp_current_path);
 
-            optimen_lst = command_processor.process_command_ls(config.get_port(), config.get_ip(), tmp_current_path);
+            optimen_lst = command_processor.process_command_ls(
+                    config.get_port(),
+                    config.get_ip(),
+                    tmp_current_path);
             update_list_view(optimen_lst);
         }
         catch (Exception e) {
-            Toast.makeText(getApplicationContext(), "Ошибка при переходе (проверьте соедниение)", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),
+                    "Ошибка при переходе (проверьте соедниение)",
+                    Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -184,8 +200,10 @@ public class Optimen extends Activity {
 
     private void process_file(String filename) throws Exception {
         try {
-            Socket socket = command_processor.process_command_file_open(config.get_port(),
-                                                                        config.get_ip(), filename);
+            Socket socket = command_processor.process_command_file_open(
+                    config.get_port(),
+                    config.get_ip(),
+                    filename);
             if (socket == null)
                 throw new Exception("Downloading file failed");
 
@@ -213,10 +231,14 @@ public class Optimen extends Activity {
             if (!command_processor.process_command_file_close(socket))
                 throw new Exception("Closing file on server side failed");
 
-            Toast.makeText(getApplicationContext(), "File downloaded", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),
+                    "File downloaded",
+                    Toast.LENGTH_SHORT).show();
         }
         catch (Exception e) {
-            Toast.makeText(getApplicationContext(), "Ошибка при скачивании:\n" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),
+                    "Ошибка при скачивании:\n" + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
         }
     }
 

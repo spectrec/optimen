@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Toast;
 
 /**
  * Created by yura on 30.11.14.
@@ -39,6 +40,10 @@ public class Settings extends Activity{
         config.set_ip(new_ip);
         config.set_port(new_port);
         config.write_config_to_file();
+
+        Toast.makeText(getApplicationContext(),
+                "Settings updated",
+                Toast.LENGTH_SHORT).show();
 
         finish();
     }
