@@ -143,7 +143,7 @@ public class Optimen extends Activity {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
                     try {
-                        process_file(tmp.getName());
+                        process_file(current_path + tmp.getName());
                     }
                     catch (Exception e) {
                         e.printStackTrace();

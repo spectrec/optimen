@@ -138,7 +138,7 @@ public class command_processor
             DataOutputStream out = get_sock_out(socket);
 
             String question = "ls " + dir + "\n";
-            out.writeBytes(question);
+            out.write(question.getBytes());
             out.flush();
 
             String answer = in.readLine();
